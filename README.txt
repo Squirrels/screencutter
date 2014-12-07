@@ -19,5 +19,8 @@ Tools used:
 Source:
 The source and all assets are available at http://github.com/Squirrels/screencutter.
 
+The game can be played at http://squirrel.itch.io/screen-cutter
+The Ludum Dare entry is at http://ludumdare.com/compo/ludum-dare-31/?action=preview&uid=44065
+
 
 
