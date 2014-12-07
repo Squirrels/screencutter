@@ -1,0 +1,834 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Screen Cutter</title>
+	<script type="text/javascript" src="assets/js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+<link rel="icon" href="assets/images/icon.png">
+</head>
+<body>
+
+<script type="text/javascript">
+
+//Code by Squirrel
+//Created using Phaser 2.2.1 (http://phaser.io/)
+
+//Dimensions of each square
+var blockDim = 40;
+
+// Default level. What each number represents is explained in the method redrawBorders()
+var viewBlocks = [
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,7,4,4,4,4,4,4,4,4,9,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+[0,0,0,0,0,1,0,0,0,0,0,11,2,0,3,0,0,0,0,0],
+[0,0,0,0,0,6,5,5,5,5,5,5,10,10,8,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+
+//Arrays to store logic
+var drawBlocks = [];
+var storedCuttedBlocks = [];
+var storedCuttedBlocksViews = [];
+var storedCuttedBlocksLogic = [];
+
+//Stored cutting area position
+var storedX = 0;
+var storedY = 0;
+
+
+//Variables
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+var player;
+var goal;
+var spring;
+var button;
+var buttonpress;
+var buttonPressedOnce = 0;
+
+//Cut Area variables
+var cArea;
+//Bounding
+var cuttedParts;
+
+var shape; 
+var levelBg;
+var cuttedRect;
+var cuttedPart;
+
+//Screen variables
+var screenBorders;
+var emptyBlocks;
+
+var jumpPads;
+
+//Control variables
+var cursors;
+var jumpButton;
+
+//Checks
+var playerInBox = 0;
+//Background
+var background;
+var backgroundWide;
+
+//Level
+var level = 0;
+var levelText = "Reach the flag!"
+
+//Audio
+var jumpSound;
+var backgroundMusic;
+var clickSoundOn;
+var clickSoundOff;
+var victorySound;
+var springSound;
+//Menu Options
+var gameStarted = 0;
+var menu;
+var startB;
+var instructionsB;
+var tutorial;
+
+//Background
+var background;
+//Load assets
+function preload() {
+	//Player image
+	game.load.image("player", "assets/images/player.png");
+	game.load.image("goal", "assets/images/goalF.png");
+
+	//Blocks
+	game.load.image("borderBlock", "assets/images/screenparts/leftNormal.png");
+	game.load.image("rightBorderBlock", "assets/images/screenparts/rightNormal.png");
+	game.load.image("topBorderBlock", "assets/images/screenparts/topNormal.png");
+	game.load.image("botBorderBlock", "assets/images/screenparts/botNormal.png");
+	game.load.image("botBorderLightsBlock", "assets/images/screenparts/botLights.png");
+	game.load.image("cornerLB", "assets/images/screenparts/cornerLB.png");
+	game.load.image("cornerLT", "assets/images/screenparts/cornerLT.png");
+	game.load.image("cornerRB", "assets/images/screenparts/cornerRB.png");
+	game.load.image("cornerRT", "assets/images/screenparts/cornerRT.png");
+
+	//Special blocks
+	game.load.image("blocker", "assets/images/blockerB.png");
+	game.load.image("spring", "assets/images/spring2.png");
+
+	game.load.image("button", "assets/images/button.png");
+	game.load.image("destructible", "assets/images/destructibleBlocker.png");
+
+
+	game.load.image("background", "assets/images/background2.png");
+	game.load.image("backgroundWide", "assets/images/background3.png");
+
+	//Audio: Music and Sounds effects
+	game.load.audio('music', 'assets/audio/loop.ogg');
+	game.load.audio('jump', 'assets/audio/jump.ogg');
+
+	game.load.audio('clickOn', 'assets/audio/clickOn.ogg');
+	game.load.audio('clickOff', 'assets/audio/clickOff.ogg');
+	game.load.audio('victory', 'assets/audio/victory.ogg');
+	game.load.audio('buttonPress', 'assets/audio/buttonPress.ogg');
+	game.load.audio('springSFX', 'assets/audio/spring.ogg');
+	//Menu and tutorial
+	game.load.image("menu","assets/images/Logo.png");
+	game.load.image("instructionsB","assets/images/instructionsButton.png");
+	game.load.image("startB","assets/images/startButton.png");
+	game.load.image("tutorial","assets/images/tutorial.png");
+	game.load.image("end","assets/images/end.png");
+
+}
+
+//Setup
+function create() {
+
+	//Audio
+	backgroundMusic = game.add.audio('music');
+	backgroundMusic.stop();
+	backgroundMusic.play('',0,1,true);
+	jumpSound = game.add.audio('jump');
+	clickSoundOn = game.add.audio('clickOn');
+	clickSoundOff = game.add.audio('clickOff');
+	victorySound = game.add.audio('victory');
+	buttonpress = game.add.audio('buttonPress');
+	springSound = game.add.audio('springSFX');
+	//Enable physics
+	game.physics.startSystem(Phaser.Physics.ARCADE);
+
+	//Groups
+	screenBorders = game.add.group();
+	screenBorders.enableBody = true;
+	emptyBlocks = game.add.group();
+	
+	jumpPads = game.add.group();
+	jumpPads.enableBody = true;
+	//Draw background
+	backgroundWide = game.add.sprite(0,0, "backgroundWide");
+	background = game.add.sprite(0,0,"background");
+
+	//Wide level check
+	if(level == 0 || level == 1)
+	{
+		background.visible = true;
+	}
+	else{
+		background.visible = false;
+	}
+	
+	redrawBorders();
+
+	//Now the cut area
+	cArea = game.add.graphics(0, 0); 
+	cArea.lineStyle(1, 0x0000FF, 1);
+	cArea.drawRect(0, 0, 2*blockDim, 2*blockDim);
+
+	
+    //Create player
+	player = game.add.sprite(250,150,"player");
+	//Activate physics for the player
+	game.physics.enable(player, Phaser.Physics.ARCADE);
+	//Make sure the player stops with the edges
+	player.body.collideWorldBounds = true;
+	//Also give it some bounce
+	player.body.bounce.y = 0.8;
+	//player.body.bounce.set(0.8);
+	player.body.gravity.y = 600;
+	//Input
+    game.input.onDown.add(clickedDown, this);
+	game.input.onUp.add(clickedUp, this);
+
+	//Controls
+	cursors = game.input.keyboard.createCursorKeys();
+    jumpButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+    hideGameObjects();
+
+    //Display menu
+    if(!gameStarted){
+	    menu =  game.add.sprite(0,0,"menu");
+	    startB =  game.add.sprite(325,323,"startB");
+
+	    startB.inputEnabled = true;
+
+	    startB.events.onInputDown.add(startClicked, this);
+
+	    instructionsB =  game.add.sprite(212,383,"instructionsB");
+
+	    instructionsB.inputEnabled = true;
+
+	    instructionsB.events.onInputDown.add(instructionsClicked, this);
+	}
+
+}
+
+var ballColideBox = 0;
+
+function update() {
+	if(!gameStarted){
+		player.body.x = 250;
+		player.body.y = 150;
+		player.body.velocity.y = 0;
+	}
+	//End
+	if(player.body != null && player.body.y >= 600){
+		resetGame();
+	}
+	//Check collisions
+	game.debug.text(levelText, 32, 32);
+	game.physics.arcade.overlap(player, goal, goalReached, null, this);
+	game.physics.arcade.collide(player, jumpPads, springBounce, null, this);
+	game.physics.arcade.collide(player, button, buttonPressed, null, this);
+	game.physics.arcade.collide(player, screenBorders);
+	
+	//Reset x velocity, so that it doesn't slide
+	if(player.body != null)player.body.velocity.x = 0;
+	//Check input
+	if (cursors.left.isDown && player.body != null)
+    {
+        player.body.velocity.x = -150;
+    }
+    else if (cursors.right.isDown  && player.body != null)
+    {
+        player.body.velocity.x = 150;
+    }
+    
+    if ((cursors.up.isDown || jumpButton.isDown)&& player.body != null  && player.body.touching.down )// && game.time.now > jumpTimer)
+    {
+        player.body.velocity.y = -450;
+        jumpSound.play();
+    }
+
+    drawCutArea();
+
+
+    //
+    if(isCutting){
+		//Using the stored view, update position
+		storedCuttedBlocksViews[0][0].x = storedX;
+		storedCuttedBlocksViews[0][0].y = storedY;
+		storedCuttedBlocksViews[0][1].x = storedX;
+		storedCuttedBlocksViews[0][1].y = storedY;
+		storedCuttedBlocksViews[1][0].x = storedX;
+		storedCuttedBlocksViews[1][0].y = storedY;
+		storedCuttedBlocksViews[1][1].x = storedX;
+		storedCuttedBlocksViews[1][1].y = storedY;
+
+    }
+   
+}
+
+function goalReached(player, goal){
+	//Method called when the player touches the flag
+	advanceLevel();
+}
+
+
+var isCutting = 0;
+var isClicking = 0;
+
+//These two functions are used to check when a click has been completed.
+//First we call clickedDown, to start the clicking event
+function clickedDown(){
+	//Check position: we don't want to cut something outside the screen
+	if(!isClicking && gameStarted){
+		isClicking = 1;
+		cArea.clear();
+		cArea = game.add.graphics(0, 0); 
+		cArea.lineStyle(1, 0xff0000, 1);
+		cArea.drawRect(0, 0, 2*blockDim, 2*blockDim);
+	}
+	
+}
+
+//Next we wait until they release the mouse button. When they do, depending on if we're cutting or not
+//we do different things
+function clickedUp(){
+	if(isClicking){
+		if(isCutting){ //Currently cutting
+			clickSoundOff.play();
+			//Stop the cutting process
+			pastePosition();
+			//Mark
+			cArea.clear();
+			cArea = game.add.graphics(0, 0); 
+			cArea.lineStyle(1, 0x0000FF, 1);
+			cArea.drawRect(0, 0, 2*blockDim, 2*blockDim);
+			isCutting = 0;
+		}
+		else{ //Not currently cutting
+			clickSoundOn.play();
+			//Start the cutting process
+			cutPosition();
+			//Mark that we're cutting
+			isCutting = 1;
+		}
+		isClicking = 0;
+	}
+	
+}
+
+
+//The next functions perform the action of "cut" and "paste" parts of the screen, so that they can be used as platforms
+function cutPosition(){
+	//Add the positions we know to the stored part
+	storedCuttedBlocks = [];
+	storedCuttedBlocksLogic = [[0,0], [0,0]];
+	var xcoord = storedX/blockDim;
+	var ycoord = storedY/blockDim;
+
+	storedCuttedBlocks = [ [viewBlocks[ycoord][xcoord], viewBlocks[ycoord][xcoord+1]], [viewBlocks[ycoord+1][xcoord], viewBlocks[ycoord+1][xcoord+1]] ];
+
+	//Check each of the 4 possible squares that make the cutting area
+	var block1 = game.add.graphics(0,0);
+	//Check if it's empty or not
+	if(viewBlocks[ycoord][xcoord] != 0 && viewBlocks[ycoord][xcoord] != 2 && viewBlocks[ycoord][xcoord] != 11 && viewBlocks[ycoord][xcoord] != 13 && viewBlocks[ycoord][xcoord] != 14){
+		block1.beginFill(0xFFFFFFF, 1);
+		block1.drawRect(0,0, blockDim, blockDim);
+		block1.endFill();
+		storedCuttedBlocksLogic[0][0] = viewBlocks[ycoord][xcoord];
+		viewBlocks[ycoord][xcoord] = 0;
+	}
+	else{
+		storedCuttedBlocksLogic[0][0] = 0;
+	}
+
+
+	var block2 = game.add.graphics(0,0);
+	if(viewBlocks[ycoord+1][xcoord] != 0 && viewBlocks[ycoord+1][xcoord] != 2 && viewBlocks[ycoord+1][xcoord] != 11 && viewBlocks[ycoord+1][xcoord] != 13 && viewBlocks[ycoord+1][xcoord] != 14){
+		block2.beginFill(0xFFFFFFF, 1);
+		block2.drawRect(0,0+blockDim, blockDim, blockDim);
+		block2.endFill();
+		storedCuttedBlocksLogic[0][1] = viewBlocks[ycoord+1][xcoord];
+		viewBlocks[ycoord+1][xcoord] = 0;
+	}
+	else{
+		//S:
+		storedCuttedBlocksLogic[0][1] = 0;
+	}
+	
+	var block3 = game.add.graphics(0,0);
+	if(viewBlocks[ycoord][xcoord+1] != 0 && viewBlocks[ycoord][xcoord+1] != 2 && viewBlocks[ycoord][xcoord+1] != 11 && viewBlocks[ycoord][xcoord+1] != 13 && viewBlocks[ycoord][xcoord+1] != 14){
+		block3.beginFill(0xFFFFFFF, 1);
+		block3.drawRect(0+blockDim, 0, blockDim, blockDim);
+		block3.endFill();
+		storedCuttedBlocksLogic[1][0] = viewBlocks[ycoord][xcoord+1];
+		viewBlocks[ycoord][xcoord+1] = 0;
+	}
+	else{
+		storedCuttedBlocksLogic[1][0] = 0;
+	}
+
+	var block4 = game.add.graphics(0,0);
+	if(viewBlocks[ycoord+1][xcoord+1] != 0 && viewBlocks[ycoord+1][xcoord+1] != 2 && viewBlocks[ycoord+1][xcoord+1] != 11  && viewBlocks[ycoord+1][xcoord+1] != 13 && viewBlocks[ycoord+1][xcoord+1] != 14){
+		block4.beginFill(0xFFFFFFF, 1);
+		block4.drawRect(0+blockDim, 0+blockDim, blockDim, blockDim);
+		block4.endFill();
+		storedCuttedBlocksLogic[1][1] = viewBlocks[ycoord+1][xcoord+1];
+		viewBlocks[ycoord+1][xcoord+1] = 0;
+
+	}
+	else{
+		storedCuttedBlocksLogic[1][1] = 0;
+	}
+	//Store in the array
+	storedCuttedBlocksViews = [[block1, block3],[block2, block4]];
+	//Redraw
+	redrawBorders();
+
+}
+
+function pastePosition(){
+	//Get those coordinates and mark them as 1 in the logical array
+	var startingX = storedX/blockDim;
+	var startingY = storedY/blockDim;
+
+	if(storedCuttedBlocksLogic[0][0] != 0){
+		viewBlocks[startingY][startingX] = storedCuttedBlocksLogic[0][0];
+	}
+	if(storedCuttedBlocksLogic[0][1] != 0){
+		viewBlocks[startingY+1][startingX] = storedCuttedBlocksLogic[0][1];
+	}
+	if(storedCuttedBlocksLogic[1][0] != 0){
+		viewBlocks[startingY][startingX+1] = storedCuttedBlocksLogic[1][0];
+	}
+	if(storedCuttedBlocksLogic[1][1] != 0){
+		viewBlocks[startingY+1][startingX+1] = storedCuttedBlocksLogic[1][1];
+	}
+	storedCuttedBlocksViews[0][0].clear();
+	storedCuttedBlocksViews[0][1].clear();
+	storedCuttedBlocksViews[1][0].clear();
+	storedCuttedBlocksViews[1][1].clear();
+	redrawBorders();
+}
+
+
+
+function drawCutArea(){
+	//Based on the position, force it to "snap to grid"
+	var mXpos =  game.input.mousePointer.x;
+	var mYpos =  game.input.mousePointer.y;
+	//Always aim for the lower one
+	mXpos = mXpos - (mXpos%blockDim);
+	mYpos = mYpos - (mYpos%blockDim);
+	//Move it
+	storedX = mXpos;
+	storedY = mYpos;
+	cArea.x = mXpos;
+	cArea.y = mYpos;
+
+}
+
+function redrawBorders(){
+	//Level numbers explanation
+	//1 - Left Wall
+	//2 - Goal
+	//3 - Right Wall
+	//4 - Top Wall
+	//5 - Bottom Wall
+	//6 - BL Corner
+	//7 - TL Corner
+	//8 - BR Corner
+	//9 - TR Corner
+	//10 - Bottom Wall with lights
+	//11 - Blocking blocks
+	//12 - Jump Pad
+	//13 - Button
+	//14 - Destructible block
+
+	//Groups
+	screenBorders.removeAll();
+	jumpPads.removeAll();
+	screenBorders = game.add.group();
+	screenBorders.enableBody = true;
+
+	jumpPads = game.add.group();
+	jumpPads.enableBody = true;
+	emptyBlocks = game.add.group();
+	
+	//Draw screen based on arrays
+	var xmult = viewBlocks.length*blockDim;
+	var ymult = viewBlocks[0].length*blockDim;
+	for (i = 0; i < viewBlocks.length; i++) { 
+		drawBlocks[i] = [];
+		for (j = 0; j < viewBlocks[i].length; j++) { 
+			if(viewBlocks[i][j] == 1){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "borderBlock");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 2)
+			{
+				//Goal
+				goal = game.add.sprite((blockDim*j)%ymult, (blockDim*i)%xmult, "goal");
+				game.physics.arcade.enable(goal);
+			}
+			else if(viewBlocks[i][j] == 3){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "rightBorderBlock");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 4){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "topBorderBlock");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 5){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "botBorderBlock");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 6){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "cornerLB");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 7){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "cornerLT");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 8){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "cornerRB");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 9){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "cornerRT");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 10){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "botBorderLightsBlock");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 11){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "blocker");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else if(viewBlocks[i][j] == 12){
+				var newspring = jumpPads.create((blockDim*j)%ymult, (blockDim*i)%xmult, "spring");
+				newspring.body.immovable = true;
+				newspring.body.collideWorldBounds = true;
+				drawBlocks[i][j] = newspring;
+			}
+			else if(viewBlocks[i][j] == 13){
+				button = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "button");
+				button.body.immovable = true;
+				button.body.collideWorldBounds = true;
+				game.physics.arcade.enable(button);
+				drawBlocks[i][j] = button;
+			}
+			else if(viewBlocks[i][j] == 14){
+				var nBorder = screenBorders.create((blockDim*j)%ymult, (blockDim*i)%xmult, "destructible");
+				nBorder.body.immovable = true;
+				nBorder.body.collideWorldBounds = true;
+				drawBlocks[i][j] = nBorder;
+			}
+			else{
+				//Just in case!
+			}
+		}
+
+   	 		
+	}
+}
+
+function springBounce(){
+        player.body.velocity.y = -550;
+        springSound.play();
+}
+
+function buttonPressed(){
+	if(buttonPressedOnce == 0){
+		buttonpress.play();
+		buttonPressedOnce = 1;
+		//Search for destructible block and change it
+		for (i = 0; i < viewBlocks.length; i++) { 
+			for (j = 0; j < viewBlocks[i].length; j++) {
+				if(viewBlocks[i][j] == 14){
+					viewBlocks[i][j] = 0;
+				}
+			}
+		}
+		redrawBorders();
+	}
+	
+}
+//Restarts the game when the player dies (touches the bottom of the screen)
+function resetGame(){
+	setLevel();
+	isCutting = 0;
+	game.state.start(game.state.current);
+	backgroundMusic.stop();
+	buttonPressedOnce = 0;
+}
+
+//Moves up a level
+function advanceLevel(){
+	victorySound.play();
+	level++;
+	isClicking = 0;
+	isCutting = 0;
+	setLevel();
+	game.state.start(game.state.current);
+	backgroundMusic.stop();
+	buttonPressedOnce = 0;
+}
+
+//Sets the correct tiles depending on the level
+function setLevel(){
+	//1 - Left Wall
+	//2 - Goal
+	//3 - Right Wall
+	//4 - Top Wall
+	//5 - Bottom Wall
+	//6 - BL Corner
+	//7 - TL Corner
+	//8 - BR Corner
+	//9 - TR Corner
+	//10 - Bottom Wall with lights
+	//11 - Blocking blocks
+	//12 - Jump Pad
+	//13 - Button
+	//14 - Destructible block
+	//The first 2 are small levels
+	if(level == 0){
+			viewBlocks = [
+			[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+			[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+			[0,0,0,0,0,7,4,4,4,4,4,4,4,4,9,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+			[0,0,0,0,0,1,0,0,0,0,0,11,2,0,3,0,0,0,0,0],
+			[0,0,0,0,0,6,5,5,5,5,5,5,10,10,8,0,0,0,0,0],
+			[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+			[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+	}
+	else if(level == 1){
+		viewBlocks = [
+		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+		[0,0,0,0,0,7,4,4,4,4,4,4,4,4,9,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,11,0,11,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,11,0,11,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,11,0,11,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,11,2,11,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,1,0,0,0,11,11,11,0,0,3,0,0,0,0,0],
+		[0,0,0,0,0,6,5,5,5,5,5,5,10,10,8,0,0,0,0,0],
+		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+		[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+	}
+	else if(level == 2){
+		levelText = "Jump Pads can be moved.";
+		viewBlocks = [
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ],
+		[0 , 7 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 9 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ] , 
+		[0 , 1 , 0 , 0 , 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 2 , 11, 3 , 0 ] ,
+		[0 , 1 , 0 , 0 , 11, 11, 0 , 11, 11, 11, 11, 11, 0 , 0 , 11, 11, 11, 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 12, 0 , 0 , 0 , 0 , 0 , 0 , 12, 0 , 3 , 0 ],
+		[0 , 6 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 10, 10, 8 , 0 ],
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] , 
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] ] ;
+	}
+	else if(level == 3){
+		levelText = "Pressing the button will destroy the special blocks.";
+		viewBlocks = [
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ],
+		[0 , 7 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 9 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 11, 3 , 0 ] , 
+		[0 , 1 , 13, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 11, 11, 2 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 0 , 0 , 11, 3 , 0 ] ,
+		[0 , 1 , 0 , 0 , 0 , 0,  0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 11, 11, 11, 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 14, 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 11, 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 11, 0 , 0 , 0 , 12, 0 , 3 , 0 ],
+		[0 , 6 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 10, 10, 8 , 0 ],
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] , 
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] ] ;
+	}
+	else if(level == 4){
+		levelText = "";
+		viewBlocks = [
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ],
+		[0 , 7 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 9 , 0 ] , 
+		[0 , 1 , 2 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ] , 
+		[0 , 1 , 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 11, 3 , 0 ] ,
+		[0 , 1 , 0 , 0 , 0 , 0,  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 6 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 10, 10, 8 , 0 ],
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] , 
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] ] ;
+	}
+	else if(level == 5){
+		viewBlocks = [
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ],
+		[0 , 7 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 9 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 11, 11, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 2 , 11, 0 , 0 , 0 , 0 , 0 , 0 , 13, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 14, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ] ,
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 1 , 12, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 3 , 0 ],
+		[0 , 6 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 10, 10, 8 , 0 ],
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] , 
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] ] ;
+	}
+	else if(level == 6){
+		viewBlocks = [
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ],
+		[0 , 7 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 4 , 9 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 11, 11, 11, 11, 11, 11, 11, 0 , 0 , 0 , 14, 0 , 11, 3 , 0 ] , 
+		[0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 11, 0 , 11, 11, 11, 11, 11, 0 , 0 , 0 , 11, 0 , 11, 3 , 0 ] ,
+		[0 , 1 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 0 , 0 , 11, 0 , 0 , 0 , 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 11, 0 , 11, 11, 0 , 11, 0 , 0 , 0 , 11, 0 , 11 , 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 11, 0 , 11, 2 , 0 , 11, 0 , 0 , 12, 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 11, 0 , 11, 11, 11, 11, 11, 11, 11, 11, 0 , 11, 3 , 0 ],
+		[0 , 1 , 0 , 0 , 0 , 0 , 11, 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 11, 3 , 0 ],
+		[0 , 1 , 13, 0 , 0 , 0 , 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 3 , 0 ],
+		[0 , 6 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 5 , 10, 10, 8 , 0 ],
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] , 
+		[0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ] ] ;
+	}
+	else if(level == 7){
+		//No more levels! Display end screen
+		game.add.sprite(0,0,"end");
+		game.paused = true;
+		gameStarted = 0;
+	}
+	
+}
+
+//Used to display the initial menu, hideds everything game related
+function hideGameObjects(){
+	if(!gameStarted){
+		player.visible = false;
+		goal.visible = false;
+		cArea.visible = false;
+		setLevel();
+		levelText = "";
+		redrawBorders();
+	}
+	
+}
+
+//When the player clicks Start or clicks inside Instructions
+function startGame(){
+	if(!gameStarted){
+		//Destroy menu
+		menu.kill();
+		startB.kill();
+		instructionsB.kill();
+		if(tutorial != null)tutorial.kill();
+		//Unhide all
+		//Reset starting level
+		player.visible = true;
+		goal.visible = true;
+		cArea.visible = true;
+		//Initial level
+		viewBlocks = [
+	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+	[0,0,0,0,0,7,4,4,4,4,4,4,4,4,9,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,11,0,0,3,0,0,0,0,0],
+	[0,0,0,0,0,1,0,0,0,0,0,11,2,0,3,0,0,0,0,0],
+	[0,0,0,0,0,6,5,5,5,5,5,5,10,10,8,0,0,0,0,0],
+	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+		levelText = "";
+		redrawBorders();
+		gameStarted = 1;
+		
+	}
+	
+
+}
+
+//Menu methods
+function startClicked(){
+	startGame();
+}
+
+function instructionsClicked(){
+	tutorial = 1;
+	tutorial =  game.add.sprite(0,0,"tutorial");
+	tutorial.inputEnabled = true;
+	tutorial.events.onInputDown.add(startGame, this);
+}
+</script>
+
+</body>
+</html>
